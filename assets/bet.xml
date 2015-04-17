@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+  <entry key="id">6</entry>
+  <entry key="alarm_id">8</entry>
+  <entry key="amount">1.00</entry>
+  <entry key="type">0</entry>
+  <entry key="state">2</entry>
+  <entry key="pay_system_id">1</entry>
+  <entry key="final_amount">0.00</entry>
+  <entry key="currency">USD</entry>
+  <entry key="ps_payment_id">PAY-6BX19237BU5322513KKSVGXA</entry>
+  <entry key="ps_auth_id">69173288FJ322012G</entry>
+</properties>

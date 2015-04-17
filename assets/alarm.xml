@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+  <entry key="id">8</entry>
+  <entry key="user_id">4</entry>
+  <entry key="time">1386566729000</entry>
+  <entry key="time_of_set">1386567482000</entry>
+  <entry key="snooze_interval">1000</entry>
+  <entry key="preFinishInterval">0</entry>
+  <entry key="grab_interval">0</entry>
+  <entry key="enabled">false</entry>
+  <entry key="snoozed">false</entry>
+  <entry key="name">New </entry>
+</properties>

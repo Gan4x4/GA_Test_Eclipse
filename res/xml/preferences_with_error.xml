@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+        <PreferenceCategory
+                android:title="RingtoneTitleforTestOnly">
+        
+              <RingtonePreference
+                android:title="Good ringtone"
+                android:summary="@string/summary_for_ringtone"
+                android:key="ringtoneNormal"
+                file="Beep.ogg"
+                />
+        
+	        <RingtonePreference
+	                android:title="Bad Ringtone without file"
+	                android:key="ringtonePreFinish" />
+	        
+	        <RingtonePreference
+	                android:title= "Good Ringtone without summary"
+	                android:key="ringtoneOnGrab"
+	                file="Crow.ogg" />
+	        
+	        
+	        <EditTextPreference
+                android:name="Not a ringtone"
+                android:summary="Not a ringtone"
+                android:defaultValue="20"
+                android:title="Has all fields as a ringtone, but outher type"
+                android:key="alarm_preFinishInterval"
+                file="Crow.ogg"
+                 />
+	        
+        </PreferenceCategory>
+        
+</PreferenceScreen>
