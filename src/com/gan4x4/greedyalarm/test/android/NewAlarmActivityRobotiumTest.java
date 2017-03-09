@@ -65,10 +65,17 @@ public class NewAlarmActivityRobotiumTest extends
 		setName(name);
 	}
 	
-	protected void setUp() throws Exception {
-		super.setUp();		
+	
+	@Override
+	public void initActivityControls() {
 		btCancel = (Button) mActivity.findViewById(com.gan4x4.greedyalarm.R.id.button_cancel);
 		btOk = (Button) mActivity.findViewById(com.gan4x4.greedyalarm.R.id.button_ok);
+	}
+	
+	
+	protected void setUp() throws Exception {
+		super.setUp();		
+		startServiceAndActivity();
 		max_delay = 10000;
 		assertTrue(solo.waitForActivity(NewAlarmActivity.class));
 		// May be not all test require this init in future
@@ -324,6 +331,7 @@ public class NewAlarmActivityRobotiumTest extends
 		assertTrue(waitForServiceStop());
 		
 	}
+
 	
 	
 	

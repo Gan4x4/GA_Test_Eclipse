@@ -11,14 +11,18 @@ import org.apache.http.HttpStatus;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import com.gan4x4.greedyalarm.GaActivity;
 import com.gan4x4.greedyalarm.GaWebApi;
 import com.gan4x4.greedyalarm.GreedyAlarmService;
 import com.gan4x4.greedyalarm.MainActivity;
 import com.gan4x4.greedyalarm.NewAlarmActivity;
+import com.gan4x4.greedyalarm.SplashActivity;
 import com.gan4x4.greedyalarm.mock.GaAlarmManager;
 import com.gan4x4.greedyalarm.mock.GaCalendar;
+import com.gan4x4.greedyalarm.mock.GaWeb;
 import com.gan4x4.greedyalarm.objects.Alarm;
 import com.gan4x4.greedyalarm.objects.HttpRequestResponse;
 import com.gan4x4.greedyalarm.objects.StringMap;
@@ -44,66 +48,60 @@ import android.widget.Button;
 
 
 
-public class GaActivityTest<T extends GaActivity> extends ActivityInstrumentationTestCase2<T>{
+public abstract class GaActivityTest<T extends GaActivity> extends ActivityInstrumentationTestCase2<T>{
 
 	protected T mActivity;
 	
 	@Mock
-	protected GaWebApi mockWebApi;
+	protected GaWebApi mockWebApi ;
 	@Mock
 	protected AlarmManager mockAlarmManager;
 	protected GreedyAlarmService service;
 	protected Solo solo;
 	
 	protected long network_delay = 1000, ui_delay = 2000, max_delay = 10000;
-		
+	private boolean mocksInit = false;
+	
+	// Abstract methods
+	public abstract void initActivityControls();
+	
 	public GaActivityTest(String pkg, Class<T> activityClass) {
 		super(pkg, activityClass);
 	}
 
-	protected void setUp() throws Exception {
-		super.setUp();
-		
-		ACRA.setLog(new NoAcraLog());
-		
-		
+	protected void initMocks(){
+		if (mocksInit) return;
+		ACRA.setLog(new NoAcraLog());  // Not work :(
 		// Mockito setup
 		System.setProperty("dexmaker.dexcache",getInstrumentation().getTargetContext().getCacheDir().getPath());
 		MockitoAnnotations.initMocks(this);
-		
+    	GaAlarmManager.setFake(mockAlarmManager); // To prevent create real Pending intents
+    	GaWeb.setFake(mockWebApi);
+    	mocksInit = true;
+	}
+	
+	protected void startServiceAndActivity(){
 		final Context c = getInstrumentation().getTargetContext();
 		final Intent intent = new Intent(c,GreedyAlarmService.class);    
-		
     	c.startService(intent);
-		
-		//mockWebApi = Mockito.mock(GaWebApi.class);
-
-    	GaAlarmManager.setFake(mockAlarmManager); // To prevent create real Pending intents
-    	
 		mActivity = this.getActivity();
 		solo = new Solo(getInstrumentation(), mActivity);
-		
-		 
-		//GreedyAlarmService spyService = spy(mActivity.ga_service);
-		
-		//AlarmManager mockAlarmManager =  
-		
-		//doNothing().when(mockAlarmManager).set(Mockito.anyInt(),Mockito.anyLong(),(PendingIntent) Mockito.any());
-		//mActivity.ga_service = spyService;
 		service = mActivity.ga_service;
-		if (service != null)
-		{
-			mActivity.ga_service.api = mockWebApi;
-			
-			
-		}
-		
 		String display = TestHelper.getDisplayInfo(mActivity);
 		Log.d(MainActivity.TAG,"DISPLAY: "+display);
-
 		// Activity must do it independently
 		unlockScreen(); 
+		//assertTrue(solo.waitForActivity(mActivity.class));
+		initActivityControls();
+	}
+	
+	
 		
+	
+	
+	protected void setUp() throws Exception {
+		super.setUp();
+		initMocks(); // If not called in superclass
 	}
 
 	private void unlockScreen(){
@@ -130,17 +128,19 @@ public class GaActivityTest<T extends GaActivity> extends ActivityInstrumentatio
 		//s.stopSelf();
 		
 		super.tearDown();
-		if (mActivity.ga_service != null){
-			mActivity.ga_service.doExit();
-		}
-		waitForActivityIsFinished(mActivity);
-		waitForServiceStop();
-		try{
-			solo.finishOpenedActivities();
-			solo.finalize();
-		}
-		catch (Throwable ex){
-			ex.printStackTrace();
+		if (mActivity != null){
+			if (mActivity.ga_service != null){
+				mActivity.ga_service.doExit();
+			}
+			waitForActivityIsFinished(mActivity);
+			waitForServiceStop();
+			try{
+				solo.finishOpenedActivities();
+				solo.finalize();
+			}
+			catch (Throwable ex){
+				ex.printStackTrace();
+			}
 		}
 		GaCalendar.removeFake(); // We must do it after kill the service to prevent start cancelAlarm task in service
 		GaAlarmManager.removeFake();
@@ -151,11 +151,15 @@ public class GaActivityTest<T extends GaActivity> extends ActivityInstrumentatio
 	
 // ====================== First level Adapters ======================================================================================
 	protected String getButtonName(View v){
+		String viewName;
 		if (v instanceof Button){
 			Button b = (Button) v;
-			return b.getText().toString();			
+			viewName= b.getText().toString();			
 		}
-		return "";
+		else{
+			viewName = getInstrumentation().getTargetContext().getResources().getResourceEntryName(v.getId());
+		}
+		return viewName;
 	}
 	
 	@UiThreadTest
@@ -262,7 +266,8 @@ public class GaActivityTest<T extends GaActivity> extends ActivityInstrumentatio
 	
 	protected HttpRequestResponse getStubResponse(int rc,int http_code) throws SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException{
 			 String raw_response = TestHelper.readFileFromAssets(this,"assets/response_setup.txt");
-			 HttpRequestResponse response = spy(new HttpRequestResponse(raw_response));
+			 //HttpRequestResponse response = spy(new HttpRequestResponse(raw_response));
+			 HttpRequestResponse response = new HttpRequestResponse(raw_response);
 			 response.setHttpCode(http_code); // No http error
 			 Field f = HttpRequestResponse.class.getDeclaredField("code");
 			 f.setAccessible(true);

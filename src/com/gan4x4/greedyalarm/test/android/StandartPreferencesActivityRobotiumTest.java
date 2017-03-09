@@ -82,7 +82,7 @@ public class StandartPreferencesActivityRobotiumTest extends ActivityInstrumenta
 	
 		public void testSimple() throws InterruptedException{
 			assertTrue(solo.waitForActivity(StandartPreferences.class));
-			Thread.sleep(60000);
+			//Thread.sleep(60000);
 			solo.goBack();
 			//solo.clickOnView(btCancel);
 			//assertTrue(solo.waitForActivity(MainActivity.class));

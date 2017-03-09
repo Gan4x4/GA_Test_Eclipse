@@ -3,6 +3,7 @@ package com.gan4x4.greedyalarm.test.android;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -38,7 +39,9 @@ import com.gan4x4.greedyalarm.MathTaskActivity;
 import com.gan4x4.greedyalarm.NewAlarmActivity;
 import com.gan4x4.greedyalarm.descriptions.DescriptionForAlarm;
 import com.gan4x4.greedyalarm.mock.GaCalendar;
+import com.gan4x4.greedyalarm.objects.Action;
 import com.gan4x4.greedyalarm.objects.Alarm;
+import com.gan4x4.greedyalarm.objects.GaAttachableObject;
 import com.gan4x4.greedyalarm.objects.HttpRequestResponse;
 import com.gan4x4.greedyalarm.objects.TaskMath;
 import com.gan4x4.greedyalarm.test.GaActivityTest;
@@ -69,29 +72,40 @@ public class MainActivityRobotiumTest extends GaActivityTest<MainActivity> {
 		setName(name);
 	}
 	
-
-	protected void setUp() throws Exception {
-		super.setUp();
-		
-		//GaApplication.on_test = true;
-		
+	protected void disableAllActions(GreedyAlarmService service){
+		ArrayList<GaAttachableObject> all_actions_list = Action.getAll();
+		for(GaAttachableObject action: all_actions_list){
+			action.setEnabled(false);
+			service.SaveDataFromObject(action);
+		}
+	}
+	
+	protected void disableAllTask(GreedyAlarmService service){
+		TaskMath tm = new TaskMath();
+		tm.setEnabled(false);
+		service.SaveDataFromObject(tm);
+	}
+	
+	public void initActivityControls(){
 		btSetup = (Button) mActivity.findViewById(com.gan4x4.greedyalarm.R.id.button_setup);
 		btCancel = (Button) mActivity.findViewById(com.gan4x4.greedyalarm.R.id.button_cancel);
 		btSnooze = (Button) mActivity.findViewById(com.gan4x4.greedyalarm.R.id.button_snooze);
 		pbConnect = (ProgressBar) mActivity.findViewById(com.gan4x4.greedyalarm.R.id.pb_connect);
+	}
+	
+	
+	protected void setUp() throws Exception {
+		super.setUp();
+		startServiceAndActivity();
+		//GaApplication.on_test = true;
+		
+		
 		
 		if (service != null)
 		{
-			
-			//Method m = GreedyAlarmService.class.getDeclaredMethod("scheduleInAlarmMAnager", null);
-			//Method m = GreedyAlarmService.class.getDeclaredMethod("scheduleInAlarmMAnager");
-			//m.setAccessible(true);
-			
-			
-			TaskMath tm = new TaskMath();
-			tm.setEnabled(false);
-			mActivity.ga_service.SaveDataFromObject(tm);
-			mActivity.ga_service.setSoundVolume(0.01f);
+			disableAllTask(service);
+			disableAllActions(service);
+			service.setSoundVolume(0.01f);
 		}
 		
 		
@@ -215,6 +229,17 @@ public class MainActivityRobotiumTest extends GaActivityTest<MainActivity> {
 	
 	
 //========================================= Second level Adapters ====================================================================================================
+
+	private void checkPercent(long time,float expected_percent){
+	// check for percent
+		assertTrue("Bad input parameter",expected_percent >=0 && expected_percent <=1);
+		final float delta = 0.1f;
+		assertEquals(mActivity.ga_service.getGanAlarm().getCancelTime(),time*1000); 
+		Float percent = mActivity.ga_service.getGanAlarm().getGrabPercent();
+		int humanReadableValueOfPercent =  Math.round(expected_percent*100);
+		assertTrue("Percent not near "+humanReadableValueOfPercent+"% : "+percent.toString(),Math.abs(percent - expected_percent) < delta);
+	}
+	
 	private Alarm prepareStandardEnabledAlarm(){
 		Alarm a = getAlarm(alarmTime);
 		TestHelper.setSystemTime(1); // Before active interval
@@ -226,6 +251,7 @@ public class MainActivityRobotiumTest extends GaActivityTest<MainActivity> {
 	
 	
 	public void checkGarabWithNetworkOk(Alarm a){
+		// Setup
 		Mockito.when(mActivity.ga_service.api.grabAlarm(anyLong(),anyFloat())).thenAnswer(new Answer<Integer>(){
 			@Override
 			  public Integer answer(InvocationOnMock invocation) {
@@ -233,10 +259,12 @@ public class MainActivityRobotiumTest extends GaActivityTest<MainActivity> {
 				return GaWebApi.GRAB_ALARM_OK;
 		   }
 		});
-		
 		Mockito.when(mActivity.ga_service.api.cancelAlarm(a.getId())).thenReturn(GaWebApi.CANCEL_ALARM_OK);
+		// Act
+		solo.clickOnView(btCancel);
+		// Check
+		assertTrue(waitForViewIsHide(pbConnect));		
 		assertTrue(solo.waitForView(btSetup));
-		assertTrue(waitForViewIsHide(pbConnect));
 		assertOnlySetup();
 	}
 	
@@ -258,15 +286,18 @@ public class MainActivityRobotiumTest extends GaActivityTest<MainActivity> {
 	public void assertHasIcons(int count){
 		
 		// Check for actions count
-		int t_and_a_count  = mActivity.ga_service.getActiveActionsDescriptions().size();
-		assertEquals(count, t_and_a_count);
-		
 		GridView grid = (GridView)solo.getView(com.gan4x4.greedyalarm.R.id.gv_icons);
-		if (count > 0 ){
-			assertVisible(grid);
+		if (count == 0){
+			if (grid.getCount() != count) assertUnvisible(grid);
 		}
-		assertEquals(t_and_a_count,grid.getCount());	
-		
+		else{
+			int t_and_a_count  = mActivity.ga_service.getActiveActionsDescriptions().size();
+			assertEquals(count, t_and_a_count);
+			if (count > 0 ){
+				assertVisible(grid);
+			}
+			assertEquals(t_and_a_count,grid.getCount());	
+		}
 	}
 	
 	public void assertNoIcons(){
@@ -323,33 +354,26 @@ public class MainActivityRobotiumTest extends GaActivityTest<MainActivity> {
 	}
 	
 	public void autoOff_Expired_NetworkOk_TasksNo_ActionsNo(Alarm a){
-		
-		
 		TestHelper.setSystemTime(TestHelper.getGrabEnd(a)+1); // Alarm Expired
 		checkGarabWithNetworkOk(a);
-		assertTextOnScreen(com.gan4x4.greedyalarm.R.string.label_alarm_trouble);
-		
+		//assertTextOnScreen(com.gan4x4.greedyalarm.R.string.label_alarm_trouble);
 	}
 	
 	public void clickCancel_Grab_NetworkOk_TasksNo_ActionsNo(Alarm a){
-		long grab_middle = TestHelper.getPreFinishEnd(a)+(TestHelper.getGrabEnd(a)-TestHelper.getPreFinishEnd(a))/2;
+		//Setup
+		final long grab_middle = TestHelper.getPreFinishEnd(a)+(TestHelper.getGrabEnd(a)-TestHelper.getPreFinishEnd(a))/2;
 		TestHelper.setSystemTime(grab_middle); // Alarm grab hard
+		// Exercise wait screen
 		assertTrue(solo.waitForView(btCancel));
-		
-		assertEquals(mActivity.ga_service.alarmState(),Alarm.GRAB);
+		assertEquals(Alarm.GRAB,mActivity.ga_service.alarmState());
 		assertOnlyCancel(); // Sometimes fail
 		assertNoIcons();
-		
-		solo.clickOnView(btCancel);
-		solo.waitForView(pbConnect);
-		// check for percent
-		assertEquals(mActivity.ga_service.getGanAlarm().getCancelTime(),grab_middle*1000); 
-		Float percent = mActivity.ga_service.getGanAlarm().getGrabPercent();
-		assertTrue("Percent not near 50% : "+percent.toString(),Math.abs(percent - 0.5) < 0.1);
-		
+		// check Grab screen
 		checkGarabWithNetworkOk(a);
+		// check for percent
+		checkPercent(grab_middle,0.5f);
+		// Check final label
 		assertTextOnScreen(com.gan4x4.greedyalarm.R.string.label_alarm_trouble);
-		
 	}
 	
 	

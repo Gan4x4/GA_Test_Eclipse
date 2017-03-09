@@ -236,6 +236,66 @@ public class AlarmTest extends TestCase {
 		
 	}
 	
+	public void test_getTimeToUpdtae()
+	{
+		// 3 minutes to start
+		long t = getTime(m-3, h, 0);
+		long tta = test_object.getTimeToUpdate(t);	
+		test_object.setSnoozeInterval(snz);
+		test_object.setPreFinishInterval(pre);
+		assertEquals(3*60*1000,tta); // Next appear behavior
+		
+		// Next call in next second
+		t = getTime(m, h, 0,0,0);
+		tta = test_object.getTimeToUpdate(t);	
+		assertEquals(0,tta);
+		
+		// Next call after snooze
+		t = getTime(m, h, 0,2,0);
+		tta = test_object.getTimeToUpdate(t);	
+		assertEquals((snz-2)*1000,tta);
+
+		// Next call in next second
+		t = getTime(m, h, 0,test_object.getSnoozeInterval(),0);
+		tta = test_object.getTimeToUpdate(t);	
+		assertEquals(0,tta);
+		
+		// Next call in next second
+		int half_pre = test_object.getPreFinishInterval()/2;
+		t = getTime(m, h, 0,test_object.getSnoozeInterval()+half_pre,0);
+		tta = test_object.getTimeToUpdate(t);	
+		assertEquals((pre-half_pre)*1000,tta);
+
+		// Next call in next second
+		t = getTime(m, h, 0,test_object.getSnoozeInterval()+test_object.getPreFinishInterval(),0);
+		tta = test_object.getTimeToUpdate(t);	
+		assertEquals(0,tta);
+		
+		// Next call in grab
+		t = getTime(m, h, 0,test_object.getSnoozeInterval()+test_object.getPreFinishInterval(),1);
+		tta = test_object.getTimeToUpdate(t);	
+		assertEquals(test_object.getGrabInterval()*1000-1,tta);
+
+		// Next call in next second
+		t = getTime(m, h, 0,test_object.getSnoozeInterval()+test_object.getPreFinishInterval()+test_object.getGrabInterval(),0);
+		tta = test_object.getTimeToUpdate(t);	
+		assertEquals(0,tta);
+
+
+		// Next call in next second
+		t = getTime(m, h, 0,test_object.getSnoozeInterval()+test_object.getPreFinishInterval()+test_object.getGrabInterval(),1);
+		tta = test_object.getTimeToUpdate(t);	
+		assertEquals(-1,tta);
+		
+		// Next call in next second
+		t = getTime(m, h, 1,test_object.getSnoozeInterval()+test_object.getPreFinishInterval()+test_object.getGrabInterval(),1);
+		tta = test_object.getTimeToUpdate(t);	
+		assertEquals(-1,tta);
+
+		
+		
+	}
+	
 	
 	public void test_getTimeToNextAppear()
 	{

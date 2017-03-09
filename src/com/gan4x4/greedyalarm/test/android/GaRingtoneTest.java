@@ -153,6 +153,8 @@ public class GaRingtoneTest extends InstrumentationTestCase {
 			assertFalse(ring.isRingtoneInstalled());
 			ring.installRingtone();
 			assertTrue(ring.isRingtoneInstalled());
+			// check ringtone type
+			
 			return ring;
 		}
 		catch (Exception e) {
